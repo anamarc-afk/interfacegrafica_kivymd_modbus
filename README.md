@@ -1,4 +1,4 @@
-# Atividade Prática — Modbus TCP com emulação de CLP
+# Atividade Prática — Interface gráfica com KivyMD para cliente Modbus TCP
 
 - Integrante 1: Ana Marcia Cruz Moreira - 201865132I
 
@@ -8,6 +8,13 @@ Bancada de bombeamento industrial.
 Quando o bit 6 do registrador 1328 está em 1, a vazão medida se aproxima
 gradualmente do setpoint escrito no par de registradores 1302–1303.
 Quando o bit está em 0, a vazão permanece constante.
+
+## Alterações após a avaliação
+Cliente principal migrado para PyModbus 3.11.3; servidor mantido em pyModbusTCP.
+
+O cliente principal verifica resposta.isError() e trata exceções, None e False.
+
+A nova versão cliente preserva a API antiga e só considera sucesso quando a escrita retorna exatamente True. As demonstrações verificam retornos antes de anunciar sucesso e não formatam None. Mantidos mapa, escalas e ordem de palavras dos floats. 
 
 ## Execução
 
