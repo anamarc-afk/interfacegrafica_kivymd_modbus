@@ -1,24 +1,46 @@
-from pyModbusTCP.client import ModbusClient
+import math
+
 from pyModbusTCP.utils import encode_ieee, decode_ieee
+from pymodbus.client import ModbusTcpClient
 
 
 class ClienteMODBUS():
     """
     Classe de comunicação Modbus TCP.
-
+    Modbus TCP usando PyModbus
     Contém apenas métodos de conexão, leitura, escrita e conversão de dados.
     Não possui menus nem chamadas input().
     """
 
-    def __init__(self, server_ip, porta, timeout=3.0):
+    def __init__(self, server_ip, porta, timeout=3.0, device_id=1):
         """
         Construtor
         """
-        self._cliente = ModbusClient(
+        self._device_id = device_id
+        self._cliente = ModbusTcpClient(
             host=server_ip,
             port=porta,
             timeout=timeout
         )
+
+    @staticmethod
+    def _resposta_ok(resposta):
+
+        if resposta is None or resposta is False:
+            return False
+
+        verificar_erro = getattr(resposta, "isError", None)
+
+        return callable(verificar_erro) and not verificar_erro()
+
+    @staticmethod
+    def _validar_div(div):
+        div = float(div)
+
+        if not math.isfinite(div) or div <= 0:
+            raise ValueError("Div deve ser finito e maior que zero.")
+
+        return div
 
     def abrir_conexao(self):
         """
@@ -26,7 +48,7 @@ class ClienteMODBUS():
         Retorna True em caso de sucesso e False em caso de falha.
         """
         try:
-            return bool(self._cliente.open())
+            return bool(self._cliente.connect())
         except Exception as e:
             print(f"Erro ao abrir conexão: {e.args}")
             return False
@@ -42,6 +64,16 @@ class ClienteMODBUS():
             print(f"Erro ao fechar conexão: {e.args}")
             return False
 
+    def _ler_registradores(self, endereco, quantidade):
+        resposta = self._cliente.read_holding_registers(
+            address=endereco, count=quantidade, device_id=self._device_id)
+        if not self._resposta_ok(resposta):
+            return None
+        registros = getattr(resposta, "registers", None)
+        if registros is None or len(registros) != quantidade:
+            return None
+        return registros
+
     def ler_holding_register(self, endereco):
         """
         Lê um Holding Register de 16 bits.
@@ -49,7 +81,7 @@ class ClienteMODBUS():
         Retorna o valor inteiro ou None em caso de falha.
         """
         try:
-            resposta = self._cliente.read_holding_registers(endereco, 1)
+            resposta = self._ler_registradores(endereco, 1)
 
             if resposta is None:
                 print(f"Falha na leitura do registrador {endereco}.")
@@ -72,10 +104,12 @@ class ClienteMODBUS():
                 print("Valor fora do intervalo de 16 bits: 0 a 65535.")
                 return False
 
-            resposta = self._cliente.write_single_register(
-                endereco, int(valor))
+            resposta = self._cliente.write_register(
+                address=endereco,
+                value=int(valor),
+                device_id=self._device_id)
 
-            if resposta is None:
+            if not self._resposta_ok(resposta):
                 print(f"Falha na escrita do registrador {endereco}.")
                 return False
 
@@ -95,7 +129,7 @@ class ClienteMODBUS():
         Ordem de palavras: big-endian.
         """
         try:
-            resposta = self._cliente.read_holding_registers(endereco, 2)
+            resposta = self._ler_registradores(endereco, 2)
 
             if resposta is None or len(resposta) != 2:
                 print(f"Falha na leitura do float no endereço {endereco}.")
@@ -121,18 +155,20 @@ class ClienteMODBUS():
         Ordem de palavras: big-endian.
         """
         try:
+            div = self._validar_div(div)
             valor_numerico = float(valor_engenharia) * div
             raw = encode_ieee(valor_numerico)
 
             palavra_alta = (raw >> 16) & 0xFFFF
             palavra_baixa = raw & 0xFFFF
 
-            resposta = self._cliente.write_multiple_registers(
-                endereco,
-                [palavra_alta, palavra_baixa]
+            resposta = self._cliente.write_registers(
+                address=endereco,
+                values=[palavra_alta, palavra_baixa],
+                device_id=self._device_id
             )
 
-            if resposta is None:
+            if not self._resposta_ok(resposta):
                 print(f"Falha na escrita do float no endereço {endereco}.")
                 return False
 
