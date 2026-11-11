@@ -1,0 +1,222 @@
+#:kivy 2.3.1
+#:import dp kivy.metrics.dp
+
+<Campo@MDTextField>:
+    mode: "outlined"
+    size_hint_y: None
+    height: dp(64)
+
+<Rotulo@MDLabel>:
+    size_hint_y: None
+    height: dp(30)
+
+
+MDScreen:
+    md_bg_color: app.theme_cls.backgroundColor
+
+    ScrollView:
+        do_scroll_x: False
+
+        MDBoxLayout:
+            orientation: "vertical"
+            padding: dp(24)
+            spacing: dp(12)
+            size_hint_y: None
+            height: self.minimum_height
+
+            Rotulo:
+                text: "Cliente Modbus TCP"
+                height: dp(40)
+
+            # Conexão
+            MDBoxLayout:
+                orientation: "horizontal"
+                spacing: dp(16)
+                size_hint_y: None
+                height: dp(110)
+
+                MDBoxLayout:
+                    orientation: "vertical"
+                    spacing: dp(8)
+
+                    Rotulo:
+                        text: "IP / host do servidor"
+
+                    Campo:
+                        id: ip
+                        text: "127.0.0.1"
+                        disabled: app.conectado or app.ocupado
+
+                MDBoxLayout:
+                    orientation: "vertical"
+                    spacing: dp(8)
+
+                    Rotulo:
+                        text: "Porta TCP"
+
+                    Campo:
+                        id: porta
+                        text: "1502"
+                        disabled: app.conectado or app.ocupado
+
+            MDBoxLayout:
+                spacing: dp(12)
+                size_hint_y: None
+                height: dp(48)
+
+                MDButton:
+                    disabled: app.conectado or app.ocupado
+                    on_release: app.conectar()
+
+                    MDButtonText:
+                        text: "Conectar"
+
+                MDButton:
+                    disabled: not app.conectado or app.ocupado
+                    on_release: app.desconectar()
+
+                    MDButtonText:
+                        text: "Desconectar"
+
+            # Seleção do tipo de dado
+            Rotulo:
+                text: "Tipo de dado"
+
+            MDBoxLayout:
+                size_hint_y: None
+                height: dp(48)
+
+                MDCheckbox:
+                    group: "tipos"
+                    allow_no_selection: False
+                    size_hint: None, None
+                    size: dp(48), dp(48)
+                    on_active: app.selecionar_tipo("Coil", self.active)
+
+                MDLabel:
+                    text: "Coil"
+
+                MDCheckbox:
+                    group: "tipos"
+                    allow_no_selection: False
+                    size_hint: None, None
+                    size: dp(48), dp(48)
+                    on_active: app.selecionar_tipo("Holding", self.active)
+
+                MDLabel:
+                    text: "Holding"
+
+                MDCheckbox:
+                    group: "tipos"
+                    allow_no_selection: False
+                    active: True
+                    size_hint: None, None
+                    size: dp(48), dp(48)
+                    on_active: app.selecionar_tipo("Float", self.active)
+
+                MDLabel:
+                    text: "Float"
+
+                MDCheckbox:
+                    group: "tipos"
+                    allow_no_selection: False
+                    size_hint: None, None
+                    size: dp(48), dp(48)
+                    on_active: app.selecionar_tipo("Bits", self.active)
+
+                MDLabel:
+                    text: "Bits"
+
+            # Endereço
+            Rotulo:
+                text: "Endereço Modbus — base zero"
+
+            Campo:
+                id: endereco
+                text: "1302"
+
+            # Escala do float
+            Rotulo:
+                text: "Div do float — leitura / Div; escrita x Div"
+
+            Campo:
+                id: divisor
+                text: "1"
+                disabled: app.tipo != "Float"
+
+            # Seleção de bits
+            Rotulo:
+                text: "Índices dos bits — exemplo: 6 ou 0,1,6"
+
+            Campo:
+                id: bits
+                text: "6"
+                disabled: app.tipo != "Bits"
+
+            # Valor de escrita
+            Rotulo:
+                text: "Valor a escrever — para vários bits: 1,0,1"
+
+            Campo:
+                id: valor
+                text: "12.75"
+
+            # Leitura única ou recorrente
+            MDBoxLayout:
+                size_hint_y: None
+                height: dp(48)
+
+                MDCheckbox:
+                    size_hint: None, None
+                    size: dp(48), dp(48)
+                    on_active: app.definir_recorrente(self.active)
+
+                MDLabel:
+                    text: "Leitura recorrente — desmarcado: leitura única"
+
+            Rotulo:
+                text: "Intervalo entre leituras, em segundos"
+
+            Campo:
+                id: intervalo
+                text: "1"
+                disabled: not app.recorrente
+
+            # Operações
+            MDBoxLayout:
+                spacing: dp(12)
+                size_hint_y: None
+                height: dp(48)
+
+                MDButton:
+                    disabled: not app.conectado or app.ocupado
+                    on_release: app.iniciar_leitura()
+
+                    MDButtonText:
+                        text: "Ler / parar recorrência"
+
+                MDButton:
+                    disabled: not app.conectado or app.ocupado
+                    on_release: app.escrever()
+
+                    MDButtonText:
+                        text: "Escrever"
+
+            # Mensagens e resultado
+            Rotulo:
+                text: "Estado da comunicação"
+
+            MDLabel:
+                text: app.status
+                size_hint_y: None
+                height: max(dp(48), self.texture_size[1])
+                text_size: self.width, None
+
+            Rotulo:
+                text: "Resultado da leitura"
+
+            MDLabel:
+                text: app.resultado
+                size_hint_y: None
+                height: max(dp(72), self.texture_size[1])
+                text_size: self.width, None
