@@ -10,20 +10,26 @@ gradualmente do setpoint escrito no par de registradores 1302–1303.
 Quando o bit está em 0, a vazão permanece constante.
 
 ## Alterações após a avaliação
-Cliente principal migrado para PyModbus 3.11.3; servidor mantido em pyModbusTCP.
+Cliente principal migrado para PyModbus; servidor mantido em pyModbusTCP.
 
 O cliente principal verifica resposta.isError() e trata exceções, None e False.
 
 A nova versão cliente preserva a API antiga e só considera sucesso quando a escrita retorna exatamente True. As demonstrações verificam retornos antes de anunciar sucesso e não formatam None. Mantidos mapa, escalas e ordem de palavras dos floats. 
+
+# Interface gráfica Modbus TCP com Python e KivyMD
+
+Aplicação gráfica desenvolvida para realizar leitura e escrita de dados em um servidor Modbus TCP, utilizando Python e KivyMD.
+
 
 ## Execução
 
 Instalação:
 
 ```bash
-python -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
 ```
 
 Terminal 1 — servidor:
@@ -32,14 +38,60 @@ Terminal 1 — servidor:
 python main.py
 ```
 
-Terminal 2 — cliente e demonstrações:
+## Terminal 2 — interface gráfica
+
+A partir da pasta principal:
 
 ```bash
-python main.py
+python -m interface.main
 ```
+
+## Conexão
+
+Na interface, informe:
+- IP: endereço do computador que executa o servidor.
+- Porta: a mesma configurada em `servidor/main.py`.
 
 IP: `localhost`  
 Porta: `502`
+
+
+## Observações
+
+- O servidor deve estar em execução antes de conectar a interface.
+- O IP e a porta devem corresponder à configuração do servidor.
+- As medições do simulador são sobrescritas a cada ciclo. Para demonstrar escrita persistente, utilize o setpoint ou um registrador de teste não atualizado pelo processo.
+
+### Leitura única
+
+1. Deixe o checkbox de leitura recorrente desmarcado.
+2. Escolha o tipo e o endereço.
+3. Preencha os campos adicionais necessários.
+4. Clique em `Ler / parar recorrência`.
+
+A aplicação executa uma leitura e apresenta o resultado.
+
+### Leitura recorrente
+
+1. Marque o checkbox de leitura recorrente.
+2. Informe o intervalo em segundos.
+3. Clique em `Ler / parar recorrência`.
+
+A aplicação utiliza o `Clock` do Kivy para agendar as leituras.
+
+Para interromper:
+
+- Clique novamente em `Ler / parar recorrência`.
+- Desmarque a leitura recorrente.
+- Desconecte do servidor.
+
+O intervalo mínimo aceito pela interface é de `0,1` segundo.
+
+As operações de rede são executadas em uma thread de trabalho, de forma serializada. Se uma operação ainda estiver em andamento, o ciclo de leitura agendado é ignorado, evitando o acúmulo de requisições.
+
+As atualizações dos resultados são encaminhadas à thread da interface pelo `Clock`.
+
+
 
 ## Mapa de dados
 
@@ -66,5 +118,12 @@ Porta: `502`
 - Escrita: `valor_numerico = valor_engenharia * Div`.
 - Para inteiros, o valor é arredondado com `round()` e limitado ao intervalo de 16 bits.
 - Bits usam valores 0 ou 1, sem escala.
+
+## Documentação
+
+- Kivy: https://kivy.org/doc/stable/
+- KivyMD: https://kivymd.readthedocs.io/en/latest/
+- PyModbus: https://pymodbus.readthedocs.io/
+- pyModbusTCP: https://pymodbustcp.readthedocs.io/
 
 - Usei IA para ela comentar o código, separando o que cada parte faz, e também auxiliar a escrever o README.
